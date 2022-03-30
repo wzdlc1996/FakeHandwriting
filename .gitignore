@@ -5,3 +5,5 @@ test
 __pycache__
 
 CharGen/GANTutorial
+CharGen/WNet/ref
+CharGen/WNet/fonts/*
