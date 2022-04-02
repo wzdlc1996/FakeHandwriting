@@ -5,5 +5,8 @@ test
 __pycache__
 
 CharGen/GANTutorial
+CharGen/WNet/__pycache__
 CharGen/WNet/ref
 CharGen/WNet/fonts/*
+CharGen/WNet/results/*
+CharGen/WNet/checkpoints/*

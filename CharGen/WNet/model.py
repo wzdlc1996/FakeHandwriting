@@ -224,16 +224,16 @@ class Discriminator(nn.Module):
         self.fc_font = nn.Linear(ddim * 32, num_font)  # which font
         self.fc_char = nn.Linear(ddim * 32, num_char)
 
-    def forward(self, x_p, x_g, x_r) -> DiscriminatorOutput:
+    def forward(self, x_g, x_p, x_r) -> DiscriminatorOutput:
         """
         Returns with:
             -  r_gan (Tensor), gan classification
-            -  r_font (Tensor), font catagory classification
             -  r_char (Tensor), char catagory classification
+            -  r_font (Tensor), font catagory classification
             -  feat (list[Tensor]), features during conv, len=5
 
-        :param x_p: (Tensor), prototype character
         :param x_g: (Tensor), generated character
+        :param x_p: (Tensor), prototype character
         :param x_r: (Tensor), reference character
         :return: DiscriminatorOutput
         """
@@ -247,7 +247,7 @@ class Discriminator(nn.Module):
         r_gan = torch.sigmoid(self.fc_gan(x))
         r_font = F.softmax(self.fc_font(x), dim=1)
         r_char = F.softmax(self.fc_char(x), dim=1)
-        return DiscriminatorOutput(r_gan, r_font, r_char, feat)
+        return DiscriminatorOutput(r_gan, r_char, r_font, feat)
 
 
 class FeatClassifierForEncoders(nn.Module):

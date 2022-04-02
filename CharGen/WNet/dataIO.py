@@ -4,11 +4,14 @@ All functions related to data, including I/O and manipulation
 from impts import *
 
 import os
+import torchvision.utils as vutils
+import matplotlib.pyplot as plt
+import numpy as np
+
 from PIL import ImageFont, ImageDraw, Image
 from torch.utils.data import Dataset, DataLoader
 from collections import OrderedDict as od
 from typing import OrderedDict, Tuple
-
 from dataType import DataItem
 
 
@@ -18,6 +21,9 @@ FONT_SIZE = 50
 FONT_PATH = "./fonts/other"
 CHAR_PATH = "./chars/reg_140.txt"
 FONT_PROTO = "./fonts/std/STSong.ttf"
+
+TEST_CHAR_PATH = "./chars/test_16.txt"
+
 
 
 def _getFontSet() -> OrderedDict[int, str]:
@@ -61,6 +67,12 @@ class ChineseCharDataset(Dataset):
         with open(CHAR_PATH, "r") as f:
             self.charList = [x for x in f.readline()]
 
+    def getFontNumber(self) -> int:
+        return len(FontSet)
+
+    def getCharNumber(self) -> int:
+        return len(self)
+
     def imageToTensor(self, img: Image.Image) -> torch.Tensor:
         return self.transform(img)
 
@@ -75,11 +87,11 @@ class ChineseCharDataset(Dataset):
     def __getitem__(self, item) -> DataItem:
         """
         Get a random tuple of data. Returns as a tuple of
-            -  style, (Tensor), the index of the random chosen style (one-hot)
-            -  chari, (Tensor), the index of char (one-hot)
-            -  refi, (Tensor), the index of random char (one-hot)
+            -  reference_ind, (Tensor), the index of the random chosen style (one-hot)
+            -  character_ind, (Tensor), the index of char (one-hot)
+            -  ref_char_ind, (Tensor), the index of random char (one-hot)
             -  prototype_img, (Tensor) 1x64x64, is the image of char with prototype style
-            -  styled_img, (Tensor) 1x64x64, is the image of random char with a random style, as reference
+            -  reference_img, (Tensor) 1x64x64, is the image of random char with a random style, as reference
             -  real_img, (Tensor) 1x64x64, is the image of char with the style, as the target of generator
 
         :param item: (int)
@@ -87,25 +99,67 @@ class ChineseCharDataset(Dataset):
         """
         char = self.charList[item]
         proto_img = getCharImage(char, self.protoFont)
-        style_ind = random.choice(list(FontSet.keys()))
-        style_font = _getFontById(style_ind)
-        style_char_ind = random.randint(0, len(self) - 1)
-        style_char = self.charList[style_char_ind]
-        style_img = getCharImage(style_char, style_font)
-        real_img = getCharImage(char, style_font)
+        refer_ind = random.choice(list(FontSet.keys()))
+        refer_font = _getFontById(refer_ind)
+        refer_char_ind = random.randint(0, len(self) - 1)
+        refer_char = self.charList[refer_char_ind]
+        refer_img = getCharImage(refer_char, refer_font)
+        real_img = getCharImage(char, refer_font)
         return DataItem(
-            self.oneHotEnc(style_ind, len(FontSet)),
-            item,
-            style_char_ind,
+            self.oneHotEnc(refer_ind, len(FontSet)),
+            self.oneHotEnc(item, len(self)),
+            self.oneHotEnc(refer_char_ind, len(self)),
             self.imageToTensor(proto_img),
-            self.imageToTensor(style_img),
+            self.imageToTensor(refer_img),
             self.imageToTensor(real_img)
         )
 
 
+def TensorListToImage(img_list, path):
+    img = vutils.make_grid(
+        img_list,
+        padding=2,
+        normalize=True
+    )
+
+    plt.figure(figsize=(8, 8))
+    plt.axis('off')
+    plt.title("Refer Images")
+    plt.imshow(np.transpose(img, (1, 2, 0)))
+    plt.savefig(path)
+
+
+class TestCharDataset:
+    def __init__(self):
+        self.proto_font = _getFontByPath(FONT_PROTO)
+        self.refer_font = _getFontById(10)
+        self.refer_char = "厄"
+
+        self.transform = trf.Compose([
+            trf.Resize(CHAR_W),
+            trf.ToTensor()
+        ])
+
+        with open(TEST_CHAR_PATH, "r") as f:
+            self.charList = [x for x in f.readline()]
+
+    def __len__(self) -> int:
+        return len(self.charList)
+
+    def __getitem__(self, item) -> Tuple[torch.Tensor, torch.Tensor]:
+        char = self.charList[item]
+        return (
+            self.transform(getCharImage(char, self.proto_font)),
+            self.transform(getCharImage(self.refer_char, self.refer_font))
+        )
+
+    def genRefImage(self):
+        img_list = [self.transform(getCharImage(char, self.refer_font)) for char in self.charList]
+        TensorListToImage(img_list, "./ref.pdf")
 
 
 if __name__ == "__main__":
     a = getCharImage("我", _getFontById(0))
     ds = ChineseCharDataset()
-    print(ds[0])
+    # print(ds[0])
+    TestCharDataset().genRefImage()
