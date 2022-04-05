@@ -1,5 +1,5 @@
 from impts import *
-from superParam import *
+from hyperParam import *
 
 from torch import Tensor
 from model import Discriminator

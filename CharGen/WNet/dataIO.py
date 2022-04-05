@@ -22,20 +22,29 @@ FONT_PATH = "./fonts/other"
 CHAR_PATH = "./chars/reg_140.txt"
 FONT_PROTO = "./fonts/std/STSong.ttf"
 
+TEST_ID = 10
 TEST_CHAR_PATH = "./chars/test_16.txt"
 
 
 
-def _getFontSet() -> OrderedDict[int, str]:
+def _getFontSet() -> Tuple[OrderedDict[int, str], OrderedDict[int, str]]:
     font_set = od()
     i = 0
     for ft in os.scandir(FONT_PATH):
         font_set[i] = ft.path
         i += 1
-    return font_set
+
+    notest = od()
+    i = 0
+    for j in range(len(font_set)):
+        if j == TEST_ID:
+            continue
+        notest[i] = font_set[i]
+        i += 1
+    return font_set, notest
 
 
-FontSet = _getFontSet()
+FontSet, FontSet_noTest = _getFontSet()
 
 
 def _getFontByPath(fontpath: str) -> ImageFont.FreeTypeFont:
@@ -68,7 +77,7 @@ class ChineseCharDataset(Dataset):
             self.charList = [x for x in f.readline()]
 
     def getFontNumber(self) -> int:
-        return len(FontSet)
+        return len(FontSet_noTest)
 
     def getCharNumber(self) -> int:
         return len(self)
@@ -99,14 +108,14 @@ class ChineseCharDataset(Dataset):
         """
         char = self.charList[item]
         proto_img = getCharImage(char, self.protoFont)
-        refer_ind = random.choice(list(FontSet.keys()))
+        refer_ind = random.choice(list(FontSet_noTest.keys()))
         refer_font = _getFontById(refer_ind)
         refer_char_ind = random.randint(0, len(self) - 1)
         refer_char = self.charList[refer_char_ind]
         refer_img = getCharImage(refer_char, refer_font)
         real_img = getCharImage(char, refer_font)
         return DataItem(
-            self.oneHotEnc(refer_ind, len(FontSet)),
+            self.oneHotEnc(refer_ind, len(FontSet_noTest)),
             self.oneHotEnc(item, len(self)),
             self.oneHotEnc(refer_char_ind, len(self)),
             self.imageToTensor(proto_img),
@@ -132,7 +141,7 @@ def TensorListToImage(img_list, path):
 class TestCharDataset:
     def __init__(self):
         self.proto_font = _getFontByPath(FONT_PROTO)
-        self.refer_font = _getFontById(10)
+        self.refer_font = _getFontById(TEST_ID)
         self.refer_char = "厄"
 
         self.transform = trf.Compose([

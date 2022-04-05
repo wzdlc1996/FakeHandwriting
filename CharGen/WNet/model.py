@@ -1,4 +1,5 @@
 from impts import *
+import hyperParam as hp
 
 from dataType import DiscriminatorOutput, GeneratorOutput
 
@@ -37,11 +38,13 @@ class ConvBNRelu(nn.Module):
         super().__init__()
         conv = nn.Conv2d(in_c, out_c, kernel_size=kernel_size, padding=pad, stride=stride)
         relu = nn.ReLU(inplace=False)
+        drp = nn.Dropout2d(p=hp.dropR)
         self.main = nn.Sequential()
         if bn:
             self.main.add_module("conv", conv)
             self.main.add_module("bn", nn.BatchNorm2d(out_c))
             self.main.add_module("relu", relu)
+            self.main.add_module("drop", drp)
         else:
             self.main.add_module("conv", conv)
             self.main.add_module("relu", relu)
@@ -66,11 +69,13 @@ class DeConvBNRelu(nn.Module):
         #  Add outpadding such that the shape is correct
         conv = nn.ConvTranspose2d(in_c, out_c, kernel_size=kernel_size, padding=pad, stride=stride, output_padding=outpad)
         relu = nn.ReLU(inplace=False)
+        drp = nn.Dropout2d(p=hp.dropR)
         self.main = nn.Sequential()
         if bn:
             self.main.add_module("conv", conv)
             self.main.add_module("bn", nn.BatchNorm2d(out_c))
             self.main.add_module("relu", relu)
+            self.main.add_module("drop", drp)
         else:
             self.main.add_module("conv", conv)
             self.main.add_module("relu", relu)

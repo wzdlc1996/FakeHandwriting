@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.transforms as trf
 
-from superParam import seed
+from hyperParam import seed
 
 random.seed(seed)
 torch.manual_seed(seed)
