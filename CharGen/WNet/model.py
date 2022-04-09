@@ -44,7 +44,7 @@ class ConvBNRelu(nn.Module):
             self.main.add_module("conv", conv)
             self.main.add_module("bn", nn.BatchNorm2d(out_c))
             self.main.add_module("relu", relu)
-            self.main.add_module("drop", drp)
+            # self.main.add_module("drop", drp)
         else:
             self.main.add_module("conv", conv)
             self.main.add_module("relu", relu)
@@ -75,7 +75,7 @@ class DeConvBNRelu(nn.Module):
             self.main.add_module("conv", conv)
             self.main.add_module("bn", nn.BatchNorm2d(out_c))
             self.main.add_module("relu", relu)
-            self.main.add_module("drop", drp)
+            # self.main.add_module("drop", drp)
         else:
             self.main.add_module("conv", conv)
             self.main.add_module("relu", relu)

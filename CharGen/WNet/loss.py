@@ -39,9 +39,12 @@ def _calGradientPenalty(
     interpol_out: DiscriminatorOutput = D(interpol_img, x_proto, x_refer)
     interpol_img.require_grad = True
 
+    # print(interpol_out.r_gan.size())
+    # exit(0)
     grad = torch.autograd.grad(
         outputs=interpol_out.r_gan,
         inputs=interpol_img,
+        grad_outputs=[torch.ones(interpol_out.r_gan.size(), device=device)],
         create_graph=True
     )
 
@@ -49,7 +52,7 @@ def _calGradientPenalty(
     for gr in grad:
         grad_norm += (gr - torch.ones(gr.size(), device=device)).pow(2).mean()
     grad_norm = grad_norm.sqrt()
-    return grad_norm.sqrt()
+    return grad_norm
 
 
 class LossG(nn.Module):
@@ -108,7 +111,8 @@ class LossG(nn.Module):
         #  GAN loss
         r_gan_sz = d_out_by_G.r_gan.size()
         lab = torch.full(r_gan_sz, real_lab, dtype=torch.float).to(self.device)
-        l_adv = nn.BCELoss()(d_out_by_G.r_gan, lab)
+        # l_adv = nn.BCELoss()(d_out_by_G.r_gan, lab)
+        l_adv = d_out_by_G.r_gan
 
         #  Categorical loss of discriminator auxiliary classifier
         l_dac = nn.CrossEntropyLoss()(d_out_by_Real.r_font, target.reference_ind) \
@@ -136,7 +140,7 @@ class LossG(nn.Module):
         return (
             alpha * l_adv + beta_d * l_dac + beta_p * l_epc + beta_r * l_erc
             + lamb_l1 * l_1 + lamb_phi * l_phi + psi_p * l_cp + psi_r * l_cr
-        )
+        ).mean()
 
 
 class LossD(nn.Module):
@@ -181,7 +185,8 @@ class LossD(nn.Module):
         r_gan_sz = d_out_by_G.r_gan.size()
         rlab = torch.full(r_gan_sz, real_lab, dtype=torch.float).to(self.device)
         flab = torch.full(r_gan_sz, fake_lab, dtype=torch.float).to(self.device)
-        l_adv = nn.BCELoss()(d_out_by_G.r_gan, flab) + nn.BCELoss()(d_out_by_Real.r_gan, rlab)
+        # l_adv = nn.BCELoss()(d_out_by_G.r_gan, flab) + nn.BCELoss()(d_out_by_Real.r_gan, rlab)
+        l_adv = d_out_by_Real.r_gan - d_out_by_G.r_gan
 
         # gradient penalty
         l_gp = _calGradientPenalty(
@@ -201,7 +206,7 @@ class LossD(nn.Module):
         l_epc = nn.CrossEntropyLoss()(enc_p, target.character_ind)
         l_erc = nn.CrossEntropyLoss()(enc_r, target.reference_ind)
 
-        return alpha * l_adv + alpha_GP * l_gp + beta_d * l_dac + beta_p * l_epc + beta_r * l_erc
+        return (alpha * l_adv + alpha_GP * l_gp + beta_d * l_dac + beta_p * l_epc + beta_r * l_erc).mean()
 
 
 if __name__ == "__main__":
@@ -211,8 +216,10 @@ if __name__ == "__main__":
     gen = WNet()
     dis = Discriminator(25, 140)
 
-    gl = LossG()
-    dl = LossD(dis)
+    dev = torch.device("cuda:0")
+
+    gl = LossG(dev)
+    dl = LossD(dis, dev)
 
     theta_p = FeatClassifierForEncoders(140)
     theta_r = FeatClassifierForEncoders(25)
@@ -220,7 +227,6 @@ if __name__ == "__main__":
     datal = torch.utils.data.DataLoader(ChineseCharDataset())
     targ: DataItem = next(iter(datal))
 
-    dev = torch.device("cuda:0")
     x = targ.real_img
     xg: GeneratorOutput = gen(targ.prototype_img, targ.reference_img)
     gg: GeneratorOutput = gen(xg.r, xg.r)

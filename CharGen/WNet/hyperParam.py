@@ -20,13 +20,15 @@ real_lab = 1.
 # Hyper-parameters for optimization
 adamBeta = (0.5, 0.999)
 iniLr = 0.0005
-lrDecay = 0.999
+lrDecay = 0.99
 
 
 # Hyper-parameters for modeling
-dropR = 0.2
+dropR = 1.
 
 
 # Hyper-parameters for training script
-MAXEPOCH = 2000
-sepr = 20
+MAXEPOCH = 200
+sepr = 10
+batch_size = 1
+num_workers = 1

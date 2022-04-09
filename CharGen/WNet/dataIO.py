@@ -80,7 +80,7 @@ class ChineseCharDataset(Dataset):
         return len(FontSet_noTest)
 
     def getCharNumber(self) -> int:
-        return len(self)
+        return len(self.charList)
 
     def imageToTensor(self, img: Image.Image) -> torch.Tensor:
         return self.transform(img)
@@ -91,7 +91,8 @@ class ChineseCharDataset(Dataset):
         return r
 
     def __len__(self) -> int:
-        return len(self.charList)
+        # return len(self.charList)
+        return self.getCharNumber() * self.getFontNumber()
 
     def __getitem__(self, item) -> DataItem:
         """
@@ -106,18 +107,18 @@ class ChineseCharDataset(Dataset):
         :param item: (int)
         :return: tuple
         """
-        char = self.charList[item]
+        char = self.charList[item % self.getCharNumber()]
         proto_img = getCharImage(char, self.protoFont)
         refer_ind = random.choice(list(FontSet_noTest.keys()))
         refer_font = _getFontById(refer_ind)
-        refer_char_ind = random.randint(0, len(self) - 1)
+        refer_char_ind = random.randint(0, self.getCharNumber() - 1)
         refer_char = self.charList[refer_char_ind]
         refer_img = getCharImage(refer_char, refer_font)
         real_img = getCharImage(char, refer_font)
         return DataItem(
-            self.oneHotEnc(refer_ind, len(FontSet_noTest)),
-            self.oneHotEnc(item, len(self)),
-            self.oneHotEnc(refer_char_ind, len(self)),
+            self.oneHotEnc(refer_ind, self.getFontNumber()),
+            self.oneHotEnc(item % self.getCharNumber(), self.getCharNumber()),
+            self.oneHotEnc(refer_char_ind, self.getCharNumber()),
             self.imageToTensor(proto_img),
             self.imageToTensor(refer_img),
             self.imageToTensor(real_img)
@@ -136,6 +137,7 @@ def TensorListToImage(img_list, path):
     plt.title("Refer Images")
     plt.imshow(np.transpose(img, (1, 2, 0)))
     plt.savefig(path)
+    plt.close()
 
 
 class TestCharDataset:

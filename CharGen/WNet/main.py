@@ -10,7 +10,7 @@ from model import WNet, Discriminator, FeatClassifierForEncoders
 from loss import LossG, LossD
 from dataType import DiscriminatorOutput, GeneratorOutput, DataItem
 
-root_fold = "./results/res_0405"
+root_fold = "./results/res_0408"
 dev = torch.device("cuda")
 
 DataSet = ChineseCharDataset()
@@ -38,8 +38,11 @@ DisLoss = LossD(DisNet, dev)
 
 
 datald = DataLoader(
-    dataset=DataSet
-)
+    dataset=DataSet,
+    batch_size=hp.batch_size,
+    shuffle=True,
+    num_workers=hp.num_workers
+)  # add batch_size > 1 would lead bug for loss._calGradientPenalty
 
 MAXEPOCH = hp.MAXEPOCH
 sepr = hp.sepr
@@ -57,6 +60,7 @@ for epoch in range(MAXEPOCH + 1):
 
         dis_loss = DisLoss(dis_fake, dis_real, gen_fake, enc_p, enc_r, datai)
         dis_loss_i = dis_loss.item()
+
         dis_loss.backward()
         DisOptim.step()
 
