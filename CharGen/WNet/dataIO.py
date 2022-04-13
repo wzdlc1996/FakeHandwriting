@@ -19,7 +19,7 @@ CHAR_W = 64
 CHAR_SIZE = (CHAR_W, CHAR_W)
 FONT_SIZE = 50
 FONT_PATH = "./fonts/other"
-CHAR_PATH = "./chars/reg_140.txt"
+CHAR_PATH = "./chars/reg_3500.txt"
 FONT_PROTO = "./fonts/std/STSong.ttf"
 
 TEST_ID = 10
@@ -141,7 +141,7 @@ def TensorListToImage(img_list, path):
 
 
 class TestCharDataset:
-    def __init__(self):
+    def __init__(self, testPath=TEST_CHAR_PATH):
         self.proto_font = _getFontByPath(FONT_PROTO)
         self.refer_font = _getFontById(TEST_ID)
         self.refer_char = "厄"
@@ -151,7 +151,7 @@ class TestCharDataset:
             trf.ToTensor()
         ])
 
-        with open(TEST_CHAR_PATH, "r") as f:
+        with open(testPath, "r") as f:
             self.charList = [x for x in f.readline()]
 
     def __len__(self) -> int:
@@ -169,8 +169,37 @@ class TestCharDataset:
         TensorListToImage(img_list, "./ref.pdf")
 
 
+class EvalCharDataset:
+    def __init__(self, imgPath: str, imgChar: str, testPath=TEST_CHAR_PATH):
+        self.proto_font = _getFontByPath(FONT_PROTO)
+        self.refer_char = imgChar
+
+        self.transform = trf.Compose([
+            trf.Resize(CHAR_W),
+            trf.ToTensor()
+        ])
+
+        with open(testPath, "r") as f:
+            self.charList = [x for x in f.readline()]
+
+        self.refer_img = Image.new(mode="L", size=CHAR_SIZE, color="white")
+        v = Image.open(imgPath)
+        self.refer_img.paste(v)
+
+    def __len__(self) -> int:
+        return len(self.charList)
+
+    def __getitem__(self, item) -> Tuple[torch.Tensor, torch.Tensor]:
+        char = self.charList[item]
+        return (
+            self.transform(getCharImage(char, self.proto_font)),
+            self.transform(self.refer_img)
+        )
+
+
 if __name__ == "__main__":
     a = getCharImage("我", _getFontById(0))
     ds = ChineseCharDataset()
     # print(ds[0])
-    TestCharDataset().genRefImage()
+    # TestCharDataset("./chars/eval_8.txt").genRefImage()
+    es = EvalCharDataset("./eval_hdwt/00.png")

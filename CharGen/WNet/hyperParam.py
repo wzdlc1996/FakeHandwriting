@@ -24,11 +24,11 @@ lrDecay = 0.99
 
 
 # Hyper-parameters for modeling
-dropR = 1.
+dropR = 0.5
 
 
 # Hyper-parameters for training script
-MAXEPOCH = 200
+MAXEPOCH = 20
 sepr = 10
 batch_size = 1
 num_workers = 1
