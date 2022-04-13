@@ -201,7 +201,10 @@ class WNet(nn.Module):
         r = self.deconv2(torch.cat([self.ResShortCutP2(lout[2]), r, self.ResShortCutR2(rout[2])], dim=1))
         r = self.deconv1(torch.cat([self.ResShortCutP1(lout[1]), r], dim=1))
         r = self.deconv0(torch.cat([self.ResShortCutP0(lout[0]), r], dim=1))
-        return GeneratorOutput(r, lout[-1], rout[-1])
+
+        # the authors seems to add tanh at the last layer. see
+        # see line 111 in https://github.com/falconjhc/W-Net/blob/master/model/decoders.py
+        return GeneratorOutput(nn.Tanh()(r), lout[-1], rout[-1])
 
 
 # According to the paper, the discriminator is the composed by leakyReLU, layer_norm, and Conv

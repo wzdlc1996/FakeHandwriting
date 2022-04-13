@@ -10,7 +10,7 @@ from model import WNet, Discriminator, FeatClassifierForEncoders
 from loss import LossG, LossD
 from dataType import DiscriminatorOutput, GeneratorOutput, DataItem
 
-root_fold = "./results/res_0408"
+root_fold = "./results/res_0412"
 dev = torch.device("cuda")
 
 DataSet = ChineseCharDataset()
@@ -20,12 +20,19 @@ DisNet = Discriminator(num_font=DataSet.getFontNumber(), num_char=DataSet.getCha
 ThetaP = FeatClassifierForEncoders(DataSet.getCharNumber()).to(dev)
 ThetaR = FeatClassifierForEncoders(DataSet.getFontNumber()).to(dev)
 
+#  load check point
+ckpt_folder = "results/res_0410/ckpt_00080"
+GenNet.load_state_dict(torch.load(f"{ckpt_folder}/gen.ckpt"))
+DisNet.load_state_dict(torch.load(f"{ckpt_folder}/dis.ckpt"))
+ThetaP.load_state_dict(torch.load(f"{ckpt_folder}/ThetaP.ckpt"))
+ThetaR.load_state_dict(torch.load(f"{ckpt_folder}/ThetaR.ckpt"))
+
 GenOptim = torch.optim.AdamW(GenNet.parameters(), betas=hp.adamBeta, lr=hp.iniLr)
 DisOptim = torch.optim.AdamW(
     itr.chain(
         DisNet.parameters(),
-        ThetaP.parameters(),
-        ThetaR.parameters()
+        # ThetaP.parameters(),
+        # ThetaR.parameters()
     ),
     betas=hp.adamBeta,
     lr=hp.iniLr
